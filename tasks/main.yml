@@ -1,0 +1,52 @@
+---
+- name: "Install python-pip dependency"
+  when:
+    ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'trusty'
+    or
+    ansible_distribution == 'Debian' and (ansible_distribution_major_version == "7" or ansible_distribution_major_version >= "8")
+  apt:
+    pkg="{{ item }}"
+    state=present
+    update_cache=yes
+    cache_valid_time=3600
+  with_items:
+    - python-setuptools
+    - curl
+  changed_when: False
+
+- name: "Install python-pip"
+  easy_install:
+    name=pip
+    state=present
+
+- name: "Upgrade pip"
+  pip:
+    name=pip
+    state=latest
+
+- name: "Install AWS CLI"
+  pip:
+    name=awscli
+    version="{{ awscli_version }}"
+
+- name: "Create the AWS config directory"
+  file:
+    path="{{ item }}/.aws"
+    state=directory
+    owner="{{ aws_cli_user }}"
+    group="{{ aws_cli_user }}"
+    mode=0755
+  with_items:
+    - "/home/{{ aws_cli_user }}"
+    - "/root"
+
+- name: "Copy AWS CLI config"
+  template:
+    src=aws_cli_config.j2
+    dest="{{ item }}/.aws/config"
+    owner="{{ aws_cli_user }}"
+    group="{{ aws_cli_user }}"
+    mode=0644
+  with_items:
+    - "/home/{{ aws_cli_user }}"
+    - "/root"
